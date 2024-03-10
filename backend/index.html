@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+  </head>
+  <body>
+    <h1 id="page-status">Closing...</h1>
+    <script>
+      const userData = {
+        status: "failure",
+        message: "",
+        access_token: undefined,
+        project_id: undefined,
+        asset_id: undefined,
+        created_data: undefined,
+      };
+
+      const sendPostMessage = (data) => {
+        try {
+          window.opener.postMessage(data, "http://localhost:5173");
+          window.close();
+        } catch (error) {
+          console.error(error.message);
+        }
+      };
+
+      document.addEventListener("DOMContentLoaded", function () {
+        const fragment = window.location.hash.substring(1);
+
+        try {
+          const URLParams = new URLSearchParams(fragment);
+          const accessToken = URLParams.get("access_token");
+          const idState = JSON.parse(URLParams.get("state"));
+
+          if (accessToken) {
+            fetch("https://jsonplaceholder.typicode.com/posts", {
+              method: "POST",
+              body: JSON.stringify({
+                title: idState ? "projectID" : "",
+                body: idState ? idState.project_id : "",
+                userId: 9999,
+              }),
+              headers: {
+                "Content-type": "application/json; charset=UTF-8",
+              },
+            })
+              .then((response) => {
+                if (!response.ok) {
+                  throw new Error("Failed to fetch data");
+                }
+                return response.json();
+              })
+              .then((json) => {
+                console.log(json);
+                userData.status = "success";
+                userData.message = "Authorization successful"
+                userData.access_token = accessToken;
+                userData.project_id = idState.project_id;
+                userData.asset_id = idState.asset_id;
+                userData.created_data = new Date();
+                sendPostMessage(userData);
+              })
+              .catch((error) => {
+                console.error(error);
+              });
+          } else {
+            sendPostMessage({
+              ...userData,
+              message: "Something Went wrong cannot find access token",
+            });
+          }
+        } catch (error) {
+          console.error(error);
+        }
+      });
+    </script>
+  </body>
+</html>
